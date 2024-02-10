@@ -1,0 +1,49 @@
+name: Copy Secrets Between Key Vaults
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  copy-secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get list of secrets from source Key Vault
+        id: get-secrets
+        run: |
+          SOURCE_KEYVAULT="source-keyvault-5"
+          SECRETS=($(az keyvault secret list --vault-name $SOURCE_KEYVAULT --query "[].id" -o tsv))
+          echo "::set-output name=secrets::${SECRETS[*]}"
+
+      - name: Copy secrets to destination Key Vault
+        id: copy-secrets
+        run: |
+          DESTINATION_KEYVAULT="destination-keyvault-5"
+          echo "SOURCE_KEYVAULT: $SOURCE_KEYVAULT"
+          echo "DESTINATION_KEYVAULT: $DESTINATION_KEYVAULT"
+          
+          for SECRET in "${{ steps.get-secrets.outputs.secrets }}" ; do
+            SECRETNAME=$(echo "$SECRET" | sed 's|.*/||')
+            SECRET_CHECK=$(az keyvault secret show --vault-name "$DESTINATION_KEYVAULT" --name "$SECRETNAME" --query "value" -o tsv 2>/dev/null)
+
+            if [ -n "$SECRET_CHECK" ]; then
+              echo "A secret with name $SECRETNAME already exists in $DESTINATION_KEYVAULT"
+            else
+              echo "Copying $SECRETNAME to KeyVault: $DESTINATION_KEYVAULT"
+              SECRET=$(az keyvault secret show --vault-name "$SOURCE_KEYVAULT" --name "$SECRETNAME" --query "value" -o tsv)
+              echo "Secret value for $SECRETNAME: $SECRET"
+              az keyvault secret set --vault-name "$DESTINATION_KEYVAULT" --name "$SECRETNAME" --value "$SECRET" >/dev/null || exit 1
+            fi
+          done
+
+
