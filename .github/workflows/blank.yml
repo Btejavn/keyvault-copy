@@ -21,14 +21,14 @@ jobs:
       - name: Get list of secrets from source Key Vault
         id: get-secrets
         run: |
-          SOURCE_KEYVAULT="sourcekeyvault-3"
+          SOURCE_KEYVAULT="source-keyvault-5"
           SECRETS=($(az keyvault secret list --vault-name $SOURCE_KEYVAULT --query "[].id" -o tsv))
           echo "::set-output name=secrets::${SECRETS[*]}"
 
       - name: Copy secrets to destination Key Vault
         id: copy-secrets
         run: |
-          DESTINATION_KEYVAULT="destinationkeyvault-4"
+          DESTINATION_KEYVAULT="destination-keyvault-5"
           for SECRET in "${{ steps.get-secrets.outputs.secrets }}" ; do
             SECRETNAME=$(echo "$SECRET" | sed 's|.*/||')
             SECRET_CHECK=$(az keyvault secret show --vault-name "$DESTINATION_KEYVAULT" --name "$SECRETNAME" --query "value" -o tsv 2>/dev/null)
