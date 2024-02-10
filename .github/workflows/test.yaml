@@ -22,8 +22,14 @@ jobs:
             secrets=$(az keyvault secret list --vault-name $SOURCE_KV --query "[].name" -o tsv)
             for secret in $secrets; do
               value=$(az keyvault secret show --vault-name $SOURCE_KV --name $secret --query value -o tsv)
-              az keyvault secret set --vault-name $DEST_KV --name $secret --value $value --no-wait
+              az keyvault secret set --vault-name $DEST_KV --name $secret --value $value
+              # Wait for the operation to complete
+              while [ "$(az keyvault secret show --vault-name $DEST_KV --name $secret --query 'attributes.enabled')" != "true" ]; do
+                echo "Waiting for secret $secret to be enabled in $DEST_KV..."
+                sleep 5
+              done
             done
         env:
           SOURCE_KV: source-keyvault-5
           DEST_KV: destination-keyvault-5
+
