@@ -26,7 +26,7 @@ jobs:
       - name: Get list of secrets from source Key Vault
         id: get-secrets
         run: |
-          SOURCE_KEYVAULT="source-keyvault-5"
+          SOURCE_KEYVAULT="source-keyvault-5"  # Set the correct source Key Vault name here
           SECRETS=($(az keyvault secret list --vault-name $SOURCE_KEYVAULT --query "[].id" -o tsv))
           echo "::set-output name=secrets::${SECRETS[*]}"
 
