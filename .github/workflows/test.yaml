@@ -26,10 +26,10 @@ jobs:
               # Echo statements without displaying secret values
               echo "Copying secret $secret from $SOURCE_KV to $DEST_KV..."
               
-              az keyvault secret set --vault-name $DEST_KV --name $secret --value $value
+              az keyvault secret set --vault-name $DEST_KV --name $secret --value $value > /dev/null 2>&1
               
               # Wait for the operation to complete
-              while [ "$(az keyvault secret show --vault-name $DEST_KV --name $secret --query 'attributes.enabled')" != "true" ]; do
+              while [ "$(az keyvault secret show --vault-name $DEST_KV --name $secret --query 'attributes.enabled' -o tsv)" != "true" ]; do
                 echo "Waiting for secret $secret to be enabled in $DEST_KV..."
                 sleep 5
               done
