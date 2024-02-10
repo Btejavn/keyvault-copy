@@ -20,8 +20,8 @@ jobs:
 
       - name: Set up Azure CLI
         run: |
-          az configure --defaults group=$RESOURCE_GROUP
-          az configure --defaults location=$REGION
+          az configure --defaults group=rg-keyvault
+          az configure --defaults location=eastus
 
       - name: Get list of secrets from source Key Vault
         id: get-secrets
@@ -50,4 +50,5 @@ jobs:
               az keyvault secret set --vault-name "$DESTINATION_KEYVAULT" --name "$SECRETNAME" --value "$SECRET" >/dev/null || exit 1
             fi
           done
+
 
