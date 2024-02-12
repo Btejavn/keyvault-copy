@@ -3,7 +3,7 @@ name: Copy Secrets Workflow
 on:
   push:
     branches:
-      - main
+      - bt
 
 jobs:
   copy-secrets:
