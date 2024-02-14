@@ -1,0 +1,41 @@
+name: creating secrets in azure workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyvault-name:
+        description: 'Azure Key Vault Name'
+        required: true
+      secret-name:
+        description: 'Secret Name in Key Vault'
+      secret-value:
+        description: 'Secret Value to be stored in Key Vault'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create or Update Secret in Azure Key Vault
+        id: create-secret
+        run: |
+          az keyvault secret set --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --value ${{ github.event.inputs.secret-value }}
+          echo "::set-output name=secret-version::$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'version' --output tsv)"
+      
+      - name: Get Secret from Azure Key Vault
+        id: get-secret
+        run: |
+          echo "SECRET_VALUE=$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'value' --output tsv)" >> $GITHUB_ENV
+      
+      - name: Use the Secret
+        run: |
+          echo "The secret value is $SECRET_VALUE"
+          # You can use $SECRET_VALUE in your subsequent steps
