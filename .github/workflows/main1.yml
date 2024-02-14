@@ -34,7 +34,4 @@ jobs:
         run: |
           echo "SECRET_VALUE=$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'value' --output tsv)" >> $GITHUB_ENV
       
-      - name: Use the Secret
-        run: |
-          echo "The secret value is $SECRET_VALUE"
-          # You can use $SECRET_VALUE in your subsequent steps
+      
