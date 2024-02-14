@@ -3,20 +3,26 @@ name: Manage Azure Key Vault Secrets
 on:
   workflow_dispatch:
     inputs:
-      keyvault-name:
-        description: 'Azure Key Vault Name'
+      action:
+        description: 'Select Action'
         required: true
-      secret-name:
-        description: 'Secret Name in Key Vault'
-        required: true
-      secret-value:
-        description: 'Secret Value to be stored in Key Vault'
-        required: false
+        options:
+          - 'Move Secrets'
+          - 'Create/Update Secret'
       source-keyvault:
         description: 'Source Azure Key Vault Name (for moving secrets)'
         required: false
       destination-keyvault:
         description: 'Destination Azure Key Vault Name (for moving secrets)'
+        required: false
+      keyvault-name:
+        description: 'Azure Key Vault Name (for create/update)'
+        required: false
+      secret-name:
+        description: 'Secret Name in Key Vault'
+        required: false
+      secret-value:
+        description: 'Secret Value to be stored in Key Vault'
         required: false
 
 jobs:
@@ -34,10 +40,10 @@ jobs:
 
       - name: Conditional Step - Move or Create/Update Secret
         run: |
-          if [ -n "${{ github.event.inputs.source-keyvault }}" ] && [ -n "${{ github.event.inputs.destination-keyvault }}" ]; then
+          if [ "${{ github.event.inputs.action }}" == "Move Secrets" ]; then
             # Move secrets from source to destination Key Vault
             az keyvault secret show --vault-name ${{ github.event.inputs.source-keyvault }} --name ${{ github.event.inputs.secret-name }} --query 'value' --output tsv | az keyvault secret set --vault-name ${{ github.event.inputs.destination-keyvault }} --name ${{ github.event.inputs.secret-name }} --value @-
-          else
+          elif [ "${{ github.event.inputs.action }}" == "Create/Update Secret" ]; then
             # Create or update secret in the specified Key Vault
             az keyvault secret set --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --value ${{ github.event.inputs.secret-value }}
             echo "::set-output name=secret-version::$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'version' --output tsv)"
@@ -45,7 +51,7 @@ jobs:
 
       - name: Conditional Step - Get and Use Secret
         run: |
-          if [ -z "${{ github.event.inputs.source-keyvault }}" ]; then
+          if [ "${{ github.event.inputs.action }}" == "Create/Update Secret" ]; then
             # Get and use secret only if not moving secrets
             echo "SECRET_VALUE=$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'value' --output tsv)" >> $GITHUB_ENV
             echo "The secret value is $SECRET_VALUE"
