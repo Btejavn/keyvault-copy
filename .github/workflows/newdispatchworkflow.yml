@@ -6,8 +6,11 @@ on:
       keyvault-name:
         description: 'Azure Key Vault Name'
         required: true
-      secrets:
-        description: 'List of secrets (JSON format)'
+      secret-names:
+        description: 'Secret Names in Key Vault (comma or colon separated)'
+        required: true
+      secret-value:
+        description: 'Secret Value to be stored in Key Vault'
         required: true
 
 jobs:
@@ -21,43 +24,35 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.DEV_AZURE_CREDENTIALS }}
 
       - name: Create or Update Secrets in Azure Key Vault
         id: create-secrets
         run: |
-          # Parse JSON input to get list of secrets
-          secrets=$(echo "${{ github.event.inputs.secrets }}" | jq -c '.[]')
+          # Parse secret names from input
+          IFS=",:" read -ra secret_names <<< "${{ github.event.inputs.secret-names }}"
 
-          # Loop through each secret and set/update in Azure Key Vault
-          while IFS= read -r secret; do
-            secret_name=$(echo "$secret" | jq -r '.name')
-            secret_value=$(echo "$secret" | jq -r '.value')
-
-            # Set or update the secret in Azure Key Vault
-            az keyvault secret set --vault-name source-keyvault-5 --name "$secret_name" --value "$secret_value"
-          done <<< "$secrets"
+          # Loop through each secret name and set/update in Azure Key Vault
+          for secret_name in "${secret_names[@]}"; do
+            az keyvault secret set --vault-name ${{ github.event.inputs.keyvault-name }} --name "$secret_name" --value "${{ github.event.inputs.secret-value }}"
+          done
 
           echo "Secrets created or updated successfully"
 
       - name: Get Secrets from Azure Key Vault
         id: get-secrets
         run: |
-          # Parse JSON input to get list of secrets
-          secrets=$(echo "${{ github.event.inputs.secrets }}" | jq -c '.[]')
-
-          # Loop through each secret and set it in GitHub environment
-          while IFS= read -r secret; do
-            secret_name=$(echo "$secret" | jq -r '.name')
-            echo "${secret_name}_VALUE=$(az keyvault secret show --vault-name source-keyvault-5 --name "$secret_name" --query 'value' --output tsv)" >> $GITHUB_ENV
-          done <<< "$secrets"
+          # Loop through each secret name and set it in GitHub environment
+          for secret_name in "${secret_names[@]}"; do
+            echo "${secret_name}_VALUE=$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name "$secret_name" --query 'value' --output tsv)" >> $GITHUB_ENV
+          done
 
       - name: Use Secrets
         run: |
           # Access the secrets in subsequent steps
-          while IFS= read -r secret; do
-            secret_name=$(echo "$secret" | cut -d'=' -f1)
-            secret_value=$(echo "$secret" | cut -d'=' -f2)
+          for secret_name in "${secret_names[@]}"; do
+            secret_value=$(echo "${secret_name}_VALUE")
             echo "The secret value for $secret_name is $secret_value"
-          done < <(env | grep "_VALUE")
+          done
+
 
