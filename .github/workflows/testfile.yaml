@@ -1,0 +1,31 @@
+name: Test Whitelist GitHub Runner IP
+
+on:
+  push:
+    branches:
+      - bt  # Adjust the branch name as needed
+
+jobs:
+  test-whitelist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Whitelist GitHub Runner IP in Key Vault
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            set -eu
+            agentIP=$(curl -s https://api.ipify.org/)
+            echo "GitHub Runner IP: $agentIP"
+            az keyvault network-rule add --ip-address $agentIP --vault-name ${{ secrets.YOUR_KEYVAULT_NAME }}
+            echo "Network rule added"
+            sleep 60
