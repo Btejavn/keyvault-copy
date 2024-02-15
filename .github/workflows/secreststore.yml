@@ -1,3 +1,4 @@
+
 name: creating-secrets-but-not-displaying
 
 on:
@@ -24,7 +25,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Whiteist GitHub Runner IP in Key Vault
+      - name: Whitelist GitHub Runner IP in Key Vault
         uses: azure/CLI@v1
         with:
           azcliversion: 2.30.0
@@ -32,7 +33,7 @@ jobs:
             set -eu
             agentIP=$(curl -s https://api.ipify.org/)
             echo $agentIP
-            az keyvault network-rule add --vault-name ${{ github.event.inputs.keyvault-name }} --ip-address $agentIP
+            az keyvault network-rule add --vault-name ${{ github.event.inputs.keyvault-name }} --ip-address $agentIP --name ${{ github.event.inputs.keyvault-name }}
             sleep 60
 
       - name: Create or Update Secret in Azure Key Vault
@@ -54,5 +55,4 @@ jobs:
       - name: Logout from Azure
         run: |
           az logout
-
 
