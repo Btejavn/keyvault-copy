@@ -3,7 +3,7 @@ name: Whitelist GitHub Runner IP
 on:
   push:
     branches:
-      - main  # Adjust the branch name as need
+      - main  # Adjust the branch name as needed
 
 jobs:
   whitelist-runner:
@@ -28,3 +28,4 @@ jobs:
           sleep 60
         env:
           AZURE_KEYVAULT_NAME: source-keyvault-5
+
