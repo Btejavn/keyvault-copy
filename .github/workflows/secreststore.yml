@@ -1,4 +1,4 @@
-name: creating secrets in azure workflow
+name: creating-secrets-but-not-displaying
 
 on:
   workflow_dispatch:
@@ -24,6 +24,17 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Whiteist GitHub Runner IP in Key Vault
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            set -eu
+            agentIP=$(curl -s https://api.ipify.org/)
+            echo $agentIP
+            az keyvault network-rule add --vault-name ${{ github.event.inputs.keyvault-name }} --ip-address $agentIP
+            sleep 60
+
       - name: Create or Update Secret in Azure Key Vault
         id: create-secret
         run: |
@@ -35,4 +46,13 @@ jobs:
         run: |
           echo "SECRET_VALUE=$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'value' --output tsv)" >> $GITHUB_ENV
       
+      - name: Use the Secret
+        run: |
+          echo "The secret value is $SECRET_VALUE"
+          # You can use $SECRET_VALUE in your subsequent steps
+
+      - name: Logout from Azure
+        run: |
+          az logout
+
 
