@@ -3,7 +3,7 @@ name: Whitelist GitHub Runner IP
 on:
   push:
     branches:
-      - main  # Adjust the branch name as needed
+      - bt  # Adjust the branch name as needed
 
 jobs:
   whitelist-runner:
