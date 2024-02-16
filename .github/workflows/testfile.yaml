@@ -26,9 +26,8 @@ jobs:
             set -eu
             agentIP=$(curl -s https://api.ipify.org/)
             echo "GitHub Runner IP: $agentIP"
-            az keyvault network-rule add --ip-address $agentIP --vault-name source-keyvault-5
+            az keyvault network-rule add --ip-address $agentIP --name default --vault-name source-keyvault-5
             echo "Network rule added"
             sleep 60
 
-          
 
