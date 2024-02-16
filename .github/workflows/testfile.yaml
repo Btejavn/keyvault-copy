@@ -19,13 +19,16 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Whitelist GitHub Runner IP in Key Vault
-        run: |
-          set -eu
-          agentIP=$(curl -s https://api.ipify.org/)
-          echo "GitHub Runner IP: $agentIP"
-          az keyvault network-rule add --ip-address $agentIP --vault-name source-keyvault-5
-          echo "Network rule added"
-          sleep 60
-        env:
-          AZURE_KEYVAULT_NAME: source-keyvault-5
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            set -eu
+            agentIP=$(curl -s https://api.ipify.org/)
+            echo "GitHub Runner IP: $agentIP"
+            az keyvault network-rule add --ip-address $agentIP --vault-name source-keyvault-5
+            echo "Network rule added"
+            sleep 60
+
+          
 
