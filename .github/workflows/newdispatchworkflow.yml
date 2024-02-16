@@ -37,22 +37,13 @@ jobs:
             echo "GitHub Runner IP: $agentIP"
             az keyvault network-rule add --ip-address $agentIP --name source-keyvault-5
             echo "Network rule added"
-            sleep 10
+            sleep 5
 
       - name: Create or Update Secret in Azure Key Vault
         id: create-secret
         run: |
           az keyvault secret set --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --value ${{ github.event.inputs.secret-value }}
           echo "::set-output name=secret-version::$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'version' --output tsv)"
-
-      - name: Delete Network Rule
-        if: always()
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.30.0
-          inlineScript: |
-            az keyvault network-rule remove --ip-address $agentIP --name source-keyvault-5
-            echo "Network rule removed"
 
       - name: Logout from Azure
         run: |
