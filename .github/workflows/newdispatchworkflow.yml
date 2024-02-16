@@ -8,8 +8,10 @@ on:
         required: true
       secret-name:
         description: 'Secret Name in Key Vault'
+        required: true
       secret-value:
         description: 'Secret Value to be stored in Key Vault'
+        required: true
 
 jobs:
   deploy:
@@ -49,9 +51,6 @@ jobs:
         with:
           azcliversion: 2.30.0
           inlineScript: |
-            set -eu
-            agentIP=$(curl -s https://api.ipify.org/)
-            echo "GitHub Runner IP: $agentIP"
             az keyvault network-rule remove --ip-address $agentIP --name source-keyvault-5
             echo "Network rule removed"
 
