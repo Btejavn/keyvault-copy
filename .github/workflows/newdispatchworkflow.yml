@@ -18,6 +18,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check for reruns
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Workflow manually triggered. Checking rerun attempt."
+            if [ "$GITHUB_RUN_ATTEMPT" -gt 1 ]; then
+              echo "No re-runs for you. Go away."
+              exit 1
+            else
+              echo "Not a re-run. Proceeding with the workflow."
+            fi
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -48,3 +60,4 @@ jobs:
       - name: Logout from Azure
         run: |
           az logout
+
