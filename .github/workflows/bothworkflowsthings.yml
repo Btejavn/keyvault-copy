@@ -1,0 +1,76 @@
+name: workflow for both the things
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyvault-name:
+        description: 'Azure Key Vault Name'
+      secret-name:
+        description: 'Secret Name in Key Vault'
+      secret-value:
+        description: 'Secret Value to be stored in Key Vault'
+      source-keyvault-name:
+        description: 'Source Azure Key Vault Name'
+      destination-keyvault-name:
+        description: 'Destination Azure Key Vault Name'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for reruns
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Workflow manually triggered. Checking rerun attempt."
+            if [ "$GITHUB_RUN_ATTEMPT" -gt 1 ]; then
+              echo "No re-runs for you. Go away."
+              exit 1
+            else
+              echo "Not a re-run. Proceeding with the workflow."
+            fi
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Run Action based on Inputs
+        run: |
+          if [ -n "${{ github.event.inputs.source-keyvault-name }}" ] && [ -n "${{ github.event.inputs.destination-keyvault-name }}" ]; then
+            # Copy secrets from source to destination key vault
+            secrets=$(az keyvault secret list --vault-name ${{ github.event.inputs.source-keyvault-name }} --query "[].name" -o tsv)
+            for secret in $secrets; do
+              value=$(az keyvault secret show --vault-name ${{ github.event.inputs.source-keyvault-name }} --name $secret --query value -o tsv)
+              
+              # Echo statements without displaying secret values
+              echo "Copying secret $secret from ${{ github.event.inputs.source-keyvault-name }} to ${{ github.event.inputs.destination-keyvault-name }}..."
+              
+              az keyvault secret set --vault-name ${{ github.event.inputs.destination-keyvault-name }} --name $secret --value $value > /dev/null 2>&1
+              
+              # Wait for the operation to complete
+              while [ "$(az keyvault secret show --vault-name ${{ github.event.inputs.destination-keyvault-name }} --name $secret --query 'attributes.enabled' -o tsv)" != "true" ]; do
+                echo "Waiting for secret $secret to be enabled in ${{ github.event.inputs.destination-keyvault-name }}..."
+                sleep 5
+              done
+              
+              # Additional echo statement to indicate completion
+              echo "Secret $secret successfully copied to ${{ github.event.inputs.destination-keyvault-name }}."
+            done
+          elif [ -n "${{ github.event.inputs.keyvault-name }}" ] && [ -n "${{ github.event.inputs.secret-name }}" ] && [ -n "${{ github.event.inputs.secret-value }}" ]; then
+            # Create or Update Secret in Azure Key Vault
+            az keyvault secret set --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --value ${{ github.event.inputs.secret-value }}
+            echo "::set-output name=secret-version::$(az keyvault secret show --vault-name ${{ github.event.inputs.keyvault-name }} --name ${{ github.event.inputs.secret-name }} --query 'version' --output tsv)"
+          else
+            echo "Invalid combination of inputs. Please provide either source and destination key vault names or key vault name, secret name, and secret value."
+            exit 1
+          fi
+
+      - name: Logout from Azure
+        run: |
+          az logout
+
